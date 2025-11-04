@@ -2,14 +2,13 @@
 const canvas = document.getElementById('scratch-canvas');
 const ctx = canvas.getContext('2d');
 const scratchSound = document.getElementById('som-raspar');
-const confettiSound = document.getElementById('som-confete'); // Adicione o elemento <audio id="som-confete"> ao seu HTML
+const confettiSound = document.getElementById('som-confete'); 
 const prizeContent = document.querySelector('.prize-content');
 const prizeContainer = document.querySelector('.scratch-wrapper');
 
 // ✨ CONFIGURAÇÃO DOS CONFETES
 let confettiTriggered = false;
-// ✨ CORREÇÃO 1: Reduzido para 50% para estourar mais cedo
-const WIN_THRESHOLD = 50; 
+const WIN_THRESHOLD = 50; // 50% de área raspada para estourar mais cedo
 
 let isDrawing = false;
 let lastPosition = null;
@@ -107,24 +106,39 @@ function drawScratchLine(from, to) {
 }
 
 // =============================
-// SOM
+// SOM (SIMPLIFICADO E ROBUSTO)
 // =============================
-function playSound() { scratchSound.play().catch(() => {}); }
-function stopSound() { scratchSound.pause(); scratchSound.currentTime = 0; }
+function playSound() { 
+    // Tenta reproduzir APENAS se o som estiver pausado (evita múltiplos plays)
+    if (scratchSound.paused) {
+        scratchSound.currentTime = 0; 
+        scratchSound.play().catch(() => {}); 
+    }
+}
+function stopSound() { 
+    scratchSound.pause(); 
+    scratchSound.currentTime = 0; 
+}
 
 // =============================
-// EVENTOS (AJUSTADOS)
+// EVENTOS
 // =============================
 window.addEventListener('mouseup', () => { isDrawing = false; stopSound(); lastPosition = null; isResizingAllowed = true; });
 
-canvas.addEventListener('mousedown', (e) => { isDrawing = true; isResizingAllowed = false; playSound(); lastPosition = getMousePos(e); scratch(lastPosition.x, lastPosition.y); });
+canvas.addEventListener('mousedown', (e) => { 
+    isDrawing = true; 
+    isResizingAllowed = false; 
+    playSound(); // Reproduz o som
+    lastPosition = getMousePos(e); 
+    scratch(lastPosition.x, lastPosition.y); 
+});
 
 // Mouse entra: reativa som e desenho
 canvas.addEventListener('mouseenter', (e) => {
     if (e.buttons === 1) { 
         isDrawing = true;
         isResizingAllowed = false;
-        playSound();
+        playSound(); // Reproduz o som
         lastPosition = getMousePos(e); 
     }
 });
@@ -138,7 +152,18 @@ canvas.addEventListener('mousemove', (e) => {
 
 canvas.addEventListener('mouseout', () => { stopSound(); lastPosition = null; });
 
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDrawing = true; isResizingAllowed = false; playSound(); lastPosition = getTouchPos(e); scratch(lastPosition.x, lastPosition.y); }, { passive: false });
+canvas.addEventListener('touchstart', (e) => { 
+    e.preventDefault(); 
+    isDrawing = true; 
+    isResizingAllowed = false; 
+    
+    // Reprodução no toque
+    playSound(); 
+    
+    lastPosition = getTouchPos(e); 
+    scratch(lastPosition.x, lastPosition.y); 
+}, { passive: false });
+
 canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (!isDrawing) return; const currentPos = getTouchPos(e); if (lastPosition) drawScratchLine(lastPosition, currentPos); lastPosition = currentPos; }, { passive: false });
 canvas.addEventListener('touchend', () => { isDrawing = false; stopSound(); lastPosition = null; isResizingAllowed = true; });
 canvas.addEventListener('touchcancel', () => { isDrawing = false; stopSound(); lastPosition = null; isResizingAllowed = true; });
@@ -151,8 +176,8 @@ const valorDoVale = urlParams.get('valor');
 if (valorDoVale) document.getElementById('valor-premio').textContent = `(Vale R$${valorDoVale})`;
 const genero = urlParams.get('genero');
 const tituloElement = document.getElementById('titulo-presente');
-if (genero === 'a') tituloElement.textContent = 'VOCÊ FOI PRESENTEADA COM UM VALE TATTOO';
-else if (genero === 'o') tituloElement.textContent = 'VOCÊ FOI PRESENTEADO COM UM VALE TATTOO';
+if (genero === 'a') document.getElementById('titulo-presente').textContent = 'VOCÊ FOI PRESENTEADA COM UM VALE TATTOO';
+else if (genero === 'o') document.getElementById('titulo-presente').textContent = 'VOCÊ FOI PRESENTEADO COM UM VALE TATTOO';
 
 // =============================
 // REDIMENSIONAMENTO
@@ -181,7 +206,6 @@ window.addEventListener('resize', debounce(() => resizeAndSetupCanvas(), 150));
 // 🎉 DETECTAR CONCLUSÃO E CONFETE
 // =============================
 function checkScratchCompletion() {
-    // Se a função confetti não estiver disponível ou já tiver sido acionada, pare aqui
     if (typeof confetti === 'undefined' || confettiTriggered) return;
     
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -217,12 +241,11 @@ function startConfetti() {
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
     
-    // ✨ CORREÇÃO 2: Cores mais variadas
     const defaults = { 
         startVelocity: 35,
         ticks: 60, 
         zIndex: 2000,
-        colors: ['#ff0a54', '#ff477e', '#ff7096', '#ff85a1', '#fbb1bd', '#f9bec7', '#00b0ff', '#ffeb3b', '#4caf50', '#9c27b0'] // Mais cores!
+        colors: ['#ff0a54', '#ff477e', '#ff7096', '#ff85a1', '#fbb1bd', '#f9bec7', '#00b0ff', '#ffeb3b', '#4caf50', '#9c27b0']
     };
 
     function randomInRange(min, max) {
