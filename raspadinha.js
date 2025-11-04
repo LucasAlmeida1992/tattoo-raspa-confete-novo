@@ -8,7 +8,7 @@ const prizeContainer = document.querySelector('.scratch-wrapper');
 
 // ✨ CONFIGURAÇÃO DOS CONFETES
 let confettiTriggered = false;
-const WIN_THRESHOLD = 50; // 50% de área raspada para estourar mais cedo
+const WIN_THRESHOLD = 50; 
 
 let isDrawing = false;
 let lastPosition = null;
@@ -98,18 +98,42 @@ function drawScratchLine(from, to) {
     }
     scratch(to.x, to.y);
     
-    // Salva o estado uma única vez após toda a linha ser desenhada
     saveCanvasState(); 
-    
-    // Verifica o quanto já foi raspado
     checkScratchCompletion();
 }
 
 // =============================
-// SOM (SIMPLIFICADO E ROBUSTO)
+// SOM (SOLUÇÃO AVANÇADA DE LATÊNCIA)
 // =============================
+let audioContext;
+let audioInitialized = false;
+
+function initializeAudio() {
+    // 1. Inicializa o Audio Context (necessário para áudio de baixa latência)
+    if (audioInitialized) return;
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioInitialized = true;
+
+        // 2. Tenta "despertar" o áudio para o Web Audio API
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    } catch (e) {
+        console.warn("Web Audio API não suportado ou bloqueado.");
+    }
+    // Remove o listener de inicialização após a primeira tentativa
+    window.removeEventListener('touchstart', initializeAudio);
+    window.removeEventListener('mousedown', initializeAudio);
+}
+
+// O Web Audio API precisa de um evento de usuário para iniciar (touchstart/mousedown)
+window.addEventListener('touchstart', initializeAudio, { once: true });
+window.addEventListener('mousedown', initializeAudio, { once: true });
+
+
 function playSound() { 
-    // Tenta reproduzir APENAS se o som estiver pausado (evita múltiplos plays)
+    // Só toca se o Web Audio API não estiver bloqueando
     if (scratchSound.paused) {
         scratchSound.currentTime = 0; 
         scratchSound.play().catch(() => {}); 
@@ -128,7 +152,7 @@ window.addEventListener('mouseup', () => { isDrawing = false; stopSound(); lastP
 canvas.addEventListener('mousedown', (e) => { 
     isDrawing = true; 
     isResizingAllowed = false; 
-    playSound(); // Reproduz o som
+    playSound();
     lastPosition = getMousePos(e); 
     scratch(lastPosition.x, lastPosition.y); 
 });
@@ -138,7 +162,7 @@ canvas.addEventListener('mouseenter', (e) => {
     if (e.buttons === 1) { 
         isDrawing = true;
         isResizingAllowed = false;
-        playSound(); // Reproduz o som
+        playSound();
         lastPosition = getMousePos(e); 
     }
 });
@@ -290,5 +314,5 @@ function startConfetti() {
 
 // =============================
 // INICIALIZAR
-// =============================
+// =BA============================
 resizeAndSetupCanvas(true);
